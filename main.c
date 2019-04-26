@@ -5,15 +5,22 @@
 
 int initHappened = 0;
 int pthread_t nextID;
+lq* current;
+lq* tail;
 
 //Structure that holds info about the thread. Need an array of these.   
 typedef struct ThreadControlBlock{
     pthread_t tid;
     __jmp_buf jmp_buf;
     int position;
+} tcb;
 
+typedef struct LinkedQueue{
+    lq* next;
+    lq* prev;
+    tcb* block;
+}lq;
 
-} TCB;
 
 void pthread_init(){
     struct sigaction sigact;
@@ -23,7 +30,9 @@ void pthread_init(){
         perror("Error: cannot handle SIGALRM");
     
     ualarm(0, 50000);//Send SIGALRM right away. Then, at 50ms intervals.
-    TBC TCBs[128];//Is this right??  
+    tbc curtcb;
+    current->block = &curtcb;//Set the head and tail of queue to first thread control block
+    tail->block = &curtcb;
 
 }
 
@@ -35,9 +44,13 @@ int pthread_create(pthread_t *thread, const pthread_attr *attr, void* (*start_ro
         pthread_init();
         initHappened = 1;
     }
+    else{
+        //call malloc to make space for the stack
+        char* stckTop = malloc(32767) + 32766;//Pointer to lowest address of new stack
+        long* stackTop = (long*) stckTop;
+    }
     if(setjmp(buf) == 0){
          //This assigns a bunch of stuff to buf. Here, we want to keep it as is because it's the first time it has been initialized 
-    	jmp_buf[6] = buf[]
 	}
     
 }
@@ -56,7 +69,7 @@ void schedule(){
 	if(setjmp(buf) == 0){
 		TCBs[nextID].jmp_buf[6] = buf[6];//Set the 
 		TCBs[nextID].jmp_buf[7] = buf[7];
-		currentID = qPop();//take the next waiting thread ID and set it to th
+		currentID = qPop();//take the next waiting thread ID and set it to the currentID
 		//set the correct TCB struct's jmp_buf to the jmp_buf just acquired
 		//place the most recently executed thread at the back of the queue. 
 		//call longjmp and pass it the state of the next thread in line.
