@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 int initHappened = 0;
+int pthread_t nextID;
 
 //Structure that holds info about the thread. Need an array of these.   
 typedef struct ThreadControlBlock{
@@ -34,8 +35,10 @@ int pthread_create(pthread_t *thread, const pthread_attr *attr, void* (*start_ro
         pthread_init();
         initHappened = 1;
     }
-    setjmp(buf); //This assigns a bunch of stuff to buf. Here, we want to keep it as is because it's the first time it has been initialized 
-    jmp_buf[6] = buf[]
+    if(setjmp(buf) == 0){
+         //This assigns a bunch of stuff to buf. Here, we want to keep it as is because it's the first time it has been initialized 
+    	jmp_buf[6] = buf[]
+	}
     
 }
 void pthread_exit(void *retval){
@@ -49,9 +52,24 @@ void schedule(){
     //This will be called every 50ms
     //Call setjmp to store the current state of the thread that got interrupted
     //Call longjmp on the jmp_buf belonging to the thread at the next position. 
+    //Need some sort of queue to know what to choose from. 
+	if(setjmp(buf) == 0){
+		TCBs[nextID].jmp_buf[6] = buf[6];//Set the 
+		TCBs[nextID].jmp_buf[7] = buf[7];
+		currentID = qPop();//take the next waiting thread ID and set it to th
+		//set the correct TCB struct's jmp_buf to the jmp_buf just acquired
+		//place the most recently executed thread at the back of the queue. 
+		//call longjmp and pass it the state of the next thread in line.
+	}		    
+	else{
+		//At this point, we are now in state of the next thread to execute.
+		//Call the function that belongs to this thread's pthread_create call.
+	}
+
+
 
 }
 
 int main(){
 
-}
+	}
