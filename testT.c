@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 void func(int *input){
-	printf("input integer = %d\n", *input);
-
+	while(1){
+		printf("input integer = %d\n", *input);
+	}
 }
 
 int main(){

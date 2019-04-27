@@ -55,6 +55,12 @@ void wrapper(void* (*startFunc) (void*), void* arg ){
     printf("Returned from function\n");
     pthread_exit(0);
 }
+
+static long int i64_ptr_mangle(long int p){
+	long int ret;
+	asm(" mov %1, %%rax; \n"
+		" xor %%fs:0x30
+
 void pthread_init(){
     struct sigaction sigact;
     sigact.sa_handler = &schedule;
@@ -96,7 +102,7 @@ void pthread_exit(void *retval){
 
 }
 pthread_t pthread_self(){
-    return nextID;
+    return head->block->tid;
     //How does this access an instance of the struct? 
 }
 
