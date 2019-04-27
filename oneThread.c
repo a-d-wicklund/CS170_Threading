@@ -33,27 +33,9 @@ pthread_t createID(){
     return i;
 }
 
-
-
-void schedule(){
-    jmp_buf s_buf;
-    if(setjmp(s_buf) == 0){
-        *(((long*) &(head->block->jbuf))+6) = *(((long*) &(s_buf))+6);
-        *(((long*) &(head->block->jbuf))+7) = *(((long*) &(s_buf))+7);
-        if(head->next != NULL)
-            head = head->next;
-        longjmp(head->block->jbuf, 1);
-    }
-    else{
-        return;
-    }
-
-}
-
-void wrapper(void* (*startFunc) (void*), void* arg ){
-    (*startFunc)(arg);
-    printf("Returned from function\n");
-    pthread_exit(0);
+pthread_t pthread_self(){
+    return head->block->tid;
+    //How does this access an instance of the struct? 
 }
 
 static long int i64_ptr_mangle(long int p)
@@ -70,13 +52,38 @@ static long int i64_ptr_mangle(long int p)
     return ret;
 }
 
+void schedule(){
+	printf("Entered scheduler\n");
+    jmp_buf s_buf;
+    if(setjmp(s_buf) == 0){
+        *(((long*) &(head->block->jbuf))+6) = i64_ptr_mangle(*(((long*) &(s_buf))+6));
+		printf("successfully reassigned jmp_buf for the current thread\n");
+        *(((long*) &(head->block->jbuf))+7) = i64_ptr_mangle(*(((long*) &(s_buf))+7));
+        if(head->next != NULL)
+            head = head->next;
+        longjmp(head->block->jbuf, 1);
+    }
+    else{
+        return;
+    }
+
+}
+
+void wrapper(void* (*startFunc) (void*), void* arg ){
+    (*startFunc)(arg);
+    printf("Returned from function\n");
+    pthread_exit(0);
+}
+
+
+
 void pthread_init(){
     struct sigaction sigact;
     sigact.sa_handler = &schedule;
     sigact.sa_flags = SA_NODEFER;
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
         perror("Error: cannot handle SIGALRM");
-    
+    printf("before ualarm\n"); 
     ualarm(10000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.
 }
 
@@ -88,32 +95,44 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
         initHappened = 1;
     }
     tcb curTCB;
+	lq node;
+	
+	//If head is null then tail is also null
+	if(head == NULL){
+		head = &node;
+		tail = &node;
+	}
+	else{
+		lq* tmp = &node;
+		tail->next = tmp;
+		tail = tail->next;	
+	}
+			
     setjmp(curTCB.jbuf);
 
-    char* stckTop = malloc(32767) + 32766;
+    char* stckTop = malloc(32767) + 32767;
+	printf("before changing stack pointer to top\n");
     long* stackTop = (long*) stckTop;//long pointer to top of stack.
-
+	//*stackTop = 7777;
+	printf("the top of the stack has value %ld\n", *stackTop);
+	printf("after stack allocation\n");
     nextID = createID();
     curTCB.tid = nextID;
     
-    *(((long*) &(curTCB.jbuf))+6) = stackTop;
-    *(((long*) &(curTCB.jbuf))+7) = &wrapper;
-    tail->block = &curTCB;
-    if(head == NULL)
-    	head->block = &curTCB;
-    
+    *(((long*) &(curTCB.jbuf))+6) = i64_ptr_mangle(stackTop);
+    *(((long*) &(curTCB.jbuf))+7) = i64_ptr_mangle(&wrapper);
+	printf("after mangle\n");
+	tail->block = &curTCB;
+   
 
-    
+   	printf("About to return\n"); 
     return 0;    
     
 }
 void pthread_exit(void *retval){
 
 }
-pthread_t pthread_self(){
-    return head->block->tid;
-    //How does this access an instance of the struct? 
-}
+
 
 
 

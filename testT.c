@@ -14,6 +14,7 @@ int main(){
     int in = 5;
     pthread_create(&thread, NULL, &func, &in);
     printf("Thread ID: %d\n", pthread_self());
+	while(1);
     pthread_exit();
 
     printf("still going\n");
