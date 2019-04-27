@@ -122,6 +122,8 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 	}
 	tail = tail->next;
 	tmp = NULL;	
+
+    printf("tmp points to address %p\nhead points to address %p\ntail points to address %p",tmp, head, tail);
 	
 			
    
