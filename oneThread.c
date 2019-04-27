@@ -19,15 +19,14 @@ typedef struct ThreadControlBlock{
 
 typedef struct LinkedQueue{
     struct LinkedQueue* next;
-    struct LinkedQueue* prev;
     tcb* block;
 }lq;
 
-lq* head;
-lq* tail;
+lq* head = malloc(sizeof(lq));
+lq* tail = malloc(sizeof(lq));
 
 pthread_t createID(){
-    pthread_t i = 0;
+    pthread_t i = 1;
     while(availID[i] == -1)
         i++;
     return i;
@@ -83,8 +82,23 @@ void pthread_init(){
     sigact.sa_flags = SA_NODEFER;
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
         perror("Error: cannot handle SIGALRM");
-    printf("before ualarm\n"); 
-    ualarm(10000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.
+    
+	
+	tcb maintcb;
+	lq mainNode;
+	maintcb.tid = (pthread_t) 0;
+	mainNode.block = &maintcb;
+	head = &mainNode;
+	tail = &mainNode;
+	
+	if(setjmp(maintcb.jbuf) == 0){
+		printf("before ualarm\n");	
+	}
+	else{
+		printf("exiting process\n");
+		exit(0);
+	}
+	ualarm(50000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.	
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_routine) (void*), void *arg){
@@ -96,20 +110,21 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     }
     tcb curTCB;
 	lq node;
-	
+    node.block = &curTCB;	
 	//If head is null then tail is also null
-	if(head == NULL){
-		head = &node;
-		tail = &node;
+	
+	
+	lq* tmp = &node;
+	tail->next = tmp;
+	if(head == tail){
+		printf("head points to same place as tail\n");
+		head->next = tmp;
 	}
-	else{
-		lq* tmp = &node;
-		tail->next = tmp;
-		tail = tail->next;	
-	}
+	tail = tail->next;
+	tmp = NULL;	
+	
 			
-    setjmp(curTCB.jbuf);
-
+   
     char* stckTop = malloc(32767) + 32767;
 	printf("before changing stack pointer to top\n");
     long* stackTop = (long*) stckTop;//long pointer to top of stack.
@@ -119,12 +134,18 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     nextID = createID();
     curTCB.tid = nextID;
     
-    *(((long*) &(curTCB.jbuf))+6) = i64_ptr_mangle(stackTop);
-    *(((long*) &(curTCB.jbuf))+7) = i64_ptr_mangle(&wrapper);
-	printf("after mangle\n");
-	tail->block = &curTCB;
-   
-
+	if(setjmp(curTCB.jbuf) == 0){
+		//set the PC and stacl pointer to address of wrapper function and top of stack, respectively
+   		*(((long*) &(curTCB.jbuf))+6) = i64_ptr_mangle(stackTop);
+    	*(((long*) &(curTCB.jbuf))+7) = i64_ptr_mangle(&wrapper);
+		printf("after mangle\n");
+		tail->block = &curTCB;
+	}
+	else{
+		return 0;
+	}
+  
+	printf("\ntid of tail: %d\n", head->next->block->tid);
    	printf("About to return\n"); 
     return 0;    
     
@@ -132,8 +153,5 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 void pthread_exit(void *retval){
 
 }
-
-
-
 
 
