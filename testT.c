@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-void func(){
+void func(int *input){
+	printf("input integer = %d\n", *input);
 
 }
 
@@ -9,7 +10,8 @@ int main(){
     pthread_t thread;
     
     //comment
-    pthread_create(&thread, NULL, &func, NULL);
+    int in = 5;
+    pthread_create(&thread, NULL, &func, &in);
     printf("Thread ID: %d\n", pthread_self());
     pthread_exit();
 
