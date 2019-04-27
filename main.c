@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <stdio.h>
 
 int initHappened = 0;
 int pthread_t nextID;
@@ -82,7 +83,3 @@ void schedule(){
 
 
 }
-
-int main(){
-
-	}
