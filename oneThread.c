@@ -2,36 +2,63 @@
 #include <stdio.h>
 #include <setjmp.h>
 #include <unistd.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
 
 int initHappened = 0;
-int pthread_t nextID;
-lq* head;
-lq* tail;
+pthread_t nextID;
 int availID[128] = {0};
 
 
 //Structure that holds info about the thread. Need an array of these.   
 typedef struct ThreadControlBlock{
     pthread_t tid;
-    __jmp_buf jbuf;
+    jmp_buf jbuf;
 } tcb;
 
+
 typedef struct LinkedQueue{
-    lq* next;
-    lq* prev;
+    struct LinkedQueue* next;
+    struct LinkedQueue* prev;
     tcb* block;
 }lq;
 
+lq* head;
+lq* tail;
+
+pthread_t createID(){
+    pthread_t i = 0;
+    while(availID[i] == -1)
+        i++;
+    return i;
+}
+
+
+
+void schedule(){
+    jmp_buf s_buf;
+    if(setjmp(s_buf) == 0){
+        *(((long*) &(head->block->jbuf))+6) = *(((long*) &(s_buf))+6);
+        *(((long*) &(head->block->jbuf))+7) = *(((long*) &(s_buf))+7);
+        if(head->next != NULL)
+            head = head->next;
+        longjmp(head->block->jbuf, 1);
+    }
+    else{
+        return;
+    }
+
+}
+
 void wrapper(void* (*startFunc) (void*), void* arg ){
     (*startFunc)(arg);
-    print("Returned from function\n");
+    printf("Returned from function\n");
     pthread_exit(0);
 }
 void pthread_init(){
     struct sigaction sigact;
     sigact.sa_handler = &schedule;
-    sigact.flags = SA_NODEFER;
+    sigact.sa_flags = SA_NODEFER;
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
         perror("Error: cannot handle SIGALRM");
     
@@ -45,26 +72,24 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
         pthread_init();
         initHappened = 1;
     }
-    jmp_buf buf;
-    setjmp(buf);
+    tcb curTCB;
+    setjmp(curTCB.jbuf);
 
     char* stckTop = malloc(32767) + 32766;
     long* stackTop = (long*) stckTop;//long pointer to top of stack.
 
     nextID = createID();
-    tcb curTCB;
     curTCB.tid = nextID;
-    curTCB.jbuf = buf;//Set the jmp_buf that is unique to this thread equal to the jmp_buf returned by setjmp
-    *(((long*) &(curTCB.jmp_buf))+6) = stackTop;
-    *(((long*) &(curTCB.jmp_buf))+7) = &wrapper;
-    tail = &curTCB;
+    
+    *(((long*) &(curTCB.jbuf))+6) = stackTop;
+    *(((long*) &(curTCB.jbuf))+7) = &wrapper;
+    tail->block = &curTCB;
     if(head == NULL)
-        head = &curTCB;
+    	head->block = &curTCB;
     
 
     
-    
-	return 0;    
+    return 0;    
     
 }
 void pthread_exit(void *retval){
@@ -75,25 +100,6 @@ pthread_t pthread_self(){
     //How does this access an instance of the struct? 
 }
 
-void schedule(){
-    jmp_buf s_buf;
-    if(setjmp(s_buf) == 0){
-        *(((long*) &(head->jmp_buf))+6) = *(((long*) &(s_buf))+6);
-        *(((long*) &(head->jmp_buf))+7) = *(((long*) &(s_buf))+7);
-        if(current.next != NULL)
-            current = current.next;
-        longjmp(current.jmp_buf, 1);
-    }
-    else{
-        return;
-    }
 
-}
 
-pthread_t createID(){
-    pthread_t i = 0;
-    while(availID[i] == -1)
-        i++;
-    return i;
-}
 
