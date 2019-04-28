@@ -129,8 +129,8 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
         
 	if(setjmp(tmp->block->jbuf) == 0){
 		//set the PC and stacl pointer to address of wrapper function and top of stack, respectively
-   		*(((long*) &(tmp->block->jbuf))+6) = i64_ptr_mangle(stackTop);
-    	*(((long*) &(tmp->block->jbuf))+7) = i64_ptr_mangle(&wrapper);
+   		*(((long*) &(tmp->block->jbuf))+6) = i64_ptr_mangle((long)stackTop);
+    	*(((long*) &(tmp->block->jbuf))+7) = i64_ptr_mangle((long)&wrapper);
 		printf("after mangle\n");
 	}
 	else{
