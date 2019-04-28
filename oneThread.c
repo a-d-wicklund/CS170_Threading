@@ -22,8 +22,8 @@ typedef struct LinkedQueue{
     tcb* block;
 }lq;
 
-lq* head = malloc(sizeof(lq));
-lq* tail = malloc(sizeof(lq));
+lq* head = NULL;
+lq* tail = NULL;
 
 pthread_t createID(){
     pthread_t i = 1;
@@ -54,13 +54,16 @@ static long int i64_ptr_mangle(long int p)
 void schedule(){
 	printf("Entered scheduler\n");
     jmp_buf s_buf;
-    if(setjmp(s_buf) == 0){
+	if(setjmp(s_buf) == 0){
         *(((long*) &(head->block->jbuf))+6) = i64_ptr_mangle(*(((long*) &(s_buf))+6));
+		*(((long*) &(head->block->jbuf))+7) = i64_ptr_mangle(*(((long*) &(s_buf))+7));
 		printf("successfully reassigned jmp_buf for the current thread\n");
-        *(((long*) &(head->block->jbuf))+7) = i64_ptr_mangle(*(((long*) &(s_buf))+7));
-        if(head->next != NULL)
+		printf("head's next points to %p\n",head->next); 
+        if(head->next != NULL){
             head = head->next;
-        longjmp(head->block->jbuf, 1);
+		}
+		
+        longjmp(s_buf,1);
     }
     else{
         return;
@@ -83,15 +86,14 @@ void pthread_init(){
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
         perror("Error: cannot handle SIGALRM");
     
+	printf("Entered init()\n");	
+
+	head->block = malloc(sizeof(struct ThreadControlBlock));
+	head->block->tid = (pthread_t) 0;
+
+	tail = head;
 	
-	tcb maintcb;
-	lq mainNode;
-	maintcb.tid = (pthread_t) 0;
-	mainNode.block = &maintcb;
-	head = &mainNode;
-	tail = &mainNode;
-	
-	if(setjmp(maintcb.jbuf) == 0){
+	if(setjmp(head->block->jbuf) == 0){
 		printf("before ualarm\n");	
 	}
 	else{
@@ -104,51 +106,46 @@ void pthread_init(){
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_routine) (void*), void *arg){
     //TODO: somehow an array of TCBs has to be stored. I guess globally. It needs to be initialized when pthread_create 
     //is called for the first time.
-    if(!initHappened){
+   	head = malloc(sizeof(struct LinkedQueue));
+	tail = malloc(sizeof(struct LinkedQueue));
+
+	if(!initHappened){
         pthread_init();
         initHappened = 1;
     }
-    tcb curTCB;
-	lq node;
-    node.block = &curTCB;	
-	//If head is null then tail is also null
+   
+	lq* tmp = malloc(sizeof(struct LinkedQueue));
+	tmp->block = malloc(sizeof(struct ThreadControlBlock));			
+    
+	nextID = createID();
+    tmp->block->tid = nextID;
+
+    char* stckTop = malloc(32767) + 32767;
+	printf("before changing stack pointer to top\n");
+    long* stackTop = (long*) stckTop;//long pointer to top of stack.
+
+	printf("after stack allocation\n");
+        
+	if(setjmp(tmp->block->jbuf) == 0){
+		//set the PC and stacl pointer to address of wrapper function and top of stack, respectively
+   		*(((long*) &(tmp->block->jbuf))+6) = i64_ptr_mangle(stackTop);
+    	*(((long*) &(tmp->block->jbuf))+7) = i64_ptr_mangle(&wrapper);
+		printf("after mangle\n");
+	}
+	else{
+		return 0;
+	}
+ 
 	
-	
-	lq* tmp = &node;
 	tail->next = tmp;
 	if(head == tail){
 		printf("head points to same place as tail\n");
 		head->next = tmp;
 	}
 	tail = tail->next;
-	tmp = NULL;	
+	printf("tmp points to address %p\nhead's next points to address %p\ntail points to address %p\n",tmp, head->next, tail);
 
-    printf("tmp points to address %p\nhead points to address %p\ntail points to address %p",tmp, head, tail);
-	
-			
-   
-    char* stckTop = malloc(32767) + 32767;
-	printf("before changing stack pointer to top\n");
-    long* stackTop = (long*) stckTop;//long pointer to top of stack.
-	//*stackTop = 7777;
-	printf("the top of the stack has value %ld\n", *stackTop);
-	printf("after stack allocation\n");
-    nextID = createID();
-    curTCB.tid = nextID;
-    
-	if(setjmp(curTCB.jbuf) == 0){
-		//set the PC and stacl pointer to address of wrapper function and top of stack, respectively
-   		*(((long*) &(curTCB.jbuf))+6) = i64_ptr_mangle(stackTop);
-    	*(((long*) &(curTCB.jbuf))+7) = i64_ptr_mangle(&wrapper);
-		printf("after mangle\n");
-		tail->block = &curTCB;
-	}
-	else{
-		return 0;
-	}
-  
-	printf("\ntid of tail: %d\n", head->next->block->tid);
-   	printf("About to return\n"); 
+
     return 0;    
     
 }
