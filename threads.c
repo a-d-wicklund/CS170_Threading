@@ -64,7 +64,7 @@ void schedule(){
             head = head->next;
 		}
 		
-        longjmp(s_buf,1);
+        longjmp(head->block->jbuf,1);
     }
     else{
         return;
