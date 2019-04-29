@@ -1,20 +1,47 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+
 void func(int *input){
-	while(1){
-		printf("input integer = %d\n", *input);
+	printf("in function\n");
+    int i = 0;
+	while(1) {
+        //if (i++ % 1000000 == 0)
+            printf("1\n");
+        //i++;
+        //usleep(10000);
 	}
 }
 
+void func2(int *input){
+	printf("in function\n");
+    int i = 0;
+	while(1) {
+        //if (i++ % 1000000 == 0)
+          printf("2\n");
+        //i++;
+        //usleep(10000);
+	}
+}
+
+
 int main(){
 
-    pthread_t thread;
+    pthread_t thread, thread2;
     
     //comment
     int in = 5;
+    int in2 = 5;
     pthread_create(&thread, NULL, &func, &in);
+    pthread_create(&thread2, NULL, &func2, &in2);
     printf("Thread ID: %d\n", pthread_self());
-	while(1);
+    int i = 0;
+	while(1) {
+        if (i++ % 1000000 == 0)
+            printf("In main\n");
+        i++;
+        //usleep(10000);
+    }
     pthread_exit();
 
     printf("still going\n");
