@@ -16,8 +16,8 @@ typedef struct ThreadControlBlock{
     jmp_buf jbuf;
     long* sp;
     void* (*startFunc) (void*);
-    void* arg
-} tcb;
+    void* arg;
+}tcb;
 
 
 typedef struct LinkedQueue{
@@ -59,10 +59,9 @@ void schedule(){
 	printf("Entered scheduler\n");
     jmp_buf s_buf;
 	if(setjmp(s_buf) == 0){
-	
-        *(((long*) &(head->block->jbuf))+6) = i64_ptr_mangle(*(((long*) &(s_buf))+6));
+    	*(((long*) &(head->block->jbuf))+6) = i64_ptr_mangle(*(((long*) &(s_buf))+6));
 		*(((long*) &(head->block->jbuf))+7) = i64_ptr_mangle(*(((long*) &(s_buf))+7));
-		printf("successfully reassigned jmp_buf for the current thread\n");
+		printf("successfully reassigned jmp_buf for thread with ID %d\n",head->block->tid);
 		printf("head's next points to %p\n",head->next); 
         if(head->next != NULL){//Put current head at the end, change head to next
             tail->next = head;
@@ -70,8 +69,9 @@ void schedule(){
             tail = tail->next;
             tail->next = NULL;
 		}
-		
-        longjmp(head->block->jbuf,1);
+		//printf("about to jump\n");
+		printf("about to jump to thread with ID %d\n", head->block->tid); 
+        //longjmp(head->block->jbuf,1);
     }
     else{
         return;
@@ -80,7 +80,7 @@ void schedule(){
 }
 
 void wrapper(){
-    (*(head->block->startFunc))(arg);
+    (*(head->block->startFunc))(head->block->arg);
     printf("Returned from function\n");
     pthread_exit(0);
 }
@@ -117,6 +117,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
    	head = malloc(sizeof(struct LinkedQueue));
 	tail = malloc(sizeof(struct LinkedQueue));
 
+	//Initialize first thread for main
 	if(!initHappened){
         pthread_init();
         initHappened = 1;
@@ -142,7 +143,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 		printf("after mangle\n");
 	}
 	else{
-		return 0;
+		pthread_exit(0);
 	}
  
 	
@@ -160,7 +161,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     
 }
 void pthread_exit(void *retval){
-    free(head->sp);
+    free(head->block->sp);
     head = head->next;
     if(head->block->tid == 0)
         exit(0);
