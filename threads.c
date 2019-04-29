@@ -14,6 +14,9 @@ int availID[128] = {0};
 typedef struct ThreadControlBlock{
     pthread_t tid;
     jmp_buf jbuf;
+    long* sp;
+    void* (*startFunc) (void*);
+    void* arg
 } tcb;
 
 
@@ -29,6 +32,7 @@ pthread_t createID(){
     pthread_t i = 1;
     while(availID[i] == -1)
         i++;
+    availID[i] = -1;
     return i;
 }
 
@@ -60,8 +64,11 @@ void schedule(){
 		*(((long*) &(head->block->jbuf))+7) = i64_ptr_mangle(*(((long*) &(s_buf))+7));
 		printf("successfully reassigned jmp_buf for the current thread\n");
 		printf("head's next points to %p\n",head->next); 
-        if(head->next != NULL){
+        if(head->next != NULL){//Put current head at the end, change head to next
+            tail->next = head;
             head = head->next;
+            tail = tail->next;
+            tail->next = NULL;
 		}
 		
         longjmp(head->block->jbuf,1);
@@ -72,8 +79,8 @@ void schedule(){
 
 }
 
-void wrapper(void* (*startFunc) (void*), void* arg ){
-    (*startFunc)(arg);
+void wrapper(){
+    (*(head->block->startFunc))(arg);
     printf("Returned from function\n");
     pthread_exit(0);
 }
@@ -98,15 +105,15 @@ void pthread_init(){
 		printf("before ualarm\n");	
 	}
 	else{
-		printf("exiting process\n");
+        return;
+		//printf("exiting process\n");
 		exit(0);
 	}
 	ualarm(50000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.	
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_routine) (void*), void *arg){
-    //TODO: somehow an array of TCBs has to be stored. I guess globally. It needs to be initialized when pthread_create 
-    //is called for the first time.
+
    	head = malloc(sizeof(struct LinkedQueue));
 	tail = malloc(sizeof(struct LinkedQueue));
 
@@ -121,9 +128,10 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 	nextID = createID();
     tmp->block->tid = nextID;
 
-    char* stckTop = malloc(32767) + 32767;
+    tmp->block->sp = malloc(32767);
+    //char* stckTop = tmp->block->sp + 32767;
 	printf("before changing stack pointer to top\n");
-    long* stackTop = (long*) stckTop;//long pointer to top of stack.
+    long* stackTop = (long*) (tmp->block->sp + 32767);//long pointer to top of stack.
 
 	printf("after stack allocation\n");
         
@@ -152,7 +160,10 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     
 }
 void pthread_exit(void *retval){
-
+    free(head->sp);
+    head = head->next;
+    if(head->block->tid == 0)
+        exit(0);
 }
 
 
