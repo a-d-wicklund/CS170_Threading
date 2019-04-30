@@ -106,6 +106,7 @@ void pthread_init(){
 	}*/
 	
 	struct sigaction sigact;
+	sigemptyset(&sigact.sa_mask);
     sigact.sa_handler = schedule;
     sigact.sa_flags = SA_NODEFER;
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
