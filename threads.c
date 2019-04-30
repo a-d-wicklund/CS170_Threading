@@ -89,13 +89,13 @@ void wrapper(){
 void pthread_init(){
     //Set main function to head, allocate its block
     head = malloc(sizeof(struct LinkedQueue));
-	tail = malloc(sizeof(struct LinkedQueue));
    
 	head->block = malloc(sizeof(struct ThreadControlBlock));
 	head->block->tid = (pthread_t) 0;
 
 	tail = head;
 	
+    /*
 	if(setjmp(head->block->jbuf) == 0){
 			
 	}
@@ -103,7 +103,7 @@ void pthread_init(){
         //return;
 		//printf("exiting process\n");
 		exit(0);
-	}
+	}*/
 	
 	struct sigaction sigact;
     sigact.sa_handler = schedule;
