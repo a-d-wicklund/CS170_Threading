@@ -66,7 +66,7 @@ void schedule(){
             tail = tail->next;
             tail->next = NULL;
 		}
-		//printf("about to jump to thread with ID %d\n", head->block->tid); 
+		printf("about to jump to thread with ID %d\n", head->block->tid); 
 		//printf("data at PC for thread %d is %d\n",head->block->tid, head->block->jbuf[7]);
         longjmp(head->block->jbuf,1);
         printf("shold be unreachable\n");
@@ -78,7 +78,7 @@ void schedule(){
 }
 
 void wrapper(){
-	//printf("entered wrapper\n");
+	printf("entered wrapper\n");
     (*(head->block->startFunc))(head->block->arg);
     //printf("Returned from function\n");
     pthread_exit(0);
@@ -87,12 +87,10 @@ void wrapper(){
 
 
 void pthread_init(){
+    //Set main function to head, allocate its block
     head = malloc(sizeof(struct LinkedQueue));
 	tail = malloc(sizeof(struct LinkedQueue));
-
-	    
-	//printf("Entered init()\n");	
-
+   
 	head->block = malloc(sizeof(struct ThreadControlBlock));
 	head->block->tid = (pthread_t) 0;
 
@@ -108,12 +106,12 @@ void pthread_init(){
 	}
 	
 	struct sigaction sigact;
-    sigact.sa_handler = &schedule;
+    sigact.sa_handler = schedule;
     sigact.sa_flags = SA_NODEFER;
     if(sigaction(SIGALRM, &sigact, NULL) == -1)
         perror("Error: cannot handle SIGALRM");
 
-	ualarm(50000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.	
+	ualarm(50000, 50000);//Send SIGALRM right away. Then, at 50ms intervals.
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_routine) (void*), void *arg){
@@ -126,15 +124,16 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
  
 	//Place new block at tail end of queue  
 	lq* tmp = malloc(sizeof(struct LinkedQueue));
+    //Set the new block to be the tail
  	tail->next = tmp;
 	tail = tail->next;
 	tail->next = NULL;
-	
    
 	tail->block = malloc(sizeof(struct ThreadControlBlock));			
 
 	pthread_t nextID = createID();
     tail->block->tid = nextID;
+    *thread = nextID;
 
     //printf("tmp points to address %p\nhead points to address %p\ntail points to address %p\n",tmp->block->tid, head->block->tid, tail->block->tid);
 
@@ -142,10 +141,8 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 	tail->block->arg = arg;
 
     tail->block->sp = malloc(32767);
-   
     long* stackTop = (long*) (tmp->block->sp + 32767);//long pointer to top of stack.
 
-	//printf("after stack allocation\n");
 	if(setjmp(tail->block->jbuf) == 0){
 		//set the PC and stacl pointer to address of wrapper function and top of stack, respectively
    		*((long*) (&(tail->block->jbuf))+6) = i64_ptr_mangle((long)stackTop);
@@ -161,9 +158,15 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 }
 void pthread_exit(void *retval){
     free(head->block->sp);
+    free(head->block);
     head = head->next;
-    if(head->block->tid == 0)
+    if(head == NULL)
         exit(0);
+    else
+        longjmp(head->block->jbuf, 1);
+
+    while(1);
 }
+
 
 

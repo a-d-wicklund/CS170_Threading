@@ -1,5 +1,5 @@
 output: basic_main.o threads.o
-	gcc basic_main.o threads.o -o application
+	gcc -g basic_main.o threads.o -o application
 
 basic_main.o: basic_main.c
 	gcc -c -g basic_main.c
