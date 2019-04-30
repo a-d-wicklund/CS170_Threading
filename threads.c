@@ -8,7 +8,7 @@
 
 int initHappened = 0;
 
-int availID[128] = {0};
+int availID[129] = {0};
 
 
 //Structure that holds info about the thread. Need an array of these.   

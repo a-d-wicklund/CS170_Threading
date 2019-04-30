@@ -5,10 +5,11 @@
 void* func(int *input){
 	printf("in function\n");
     int i = 0;
-	while(i<10000000) {
-        if (i++ % 1000000 == 0)
-            printf("1\n");
+	while(i<10000) {
+        //if (i++ % 1000000 == 0)
+        //printf("%d\n",i);
         //usleep(10000);
+        i++;
 	}
 }
 
@@ -16,8 +17,8 @@ void* func2(int *input){
 	printf("in function\n");
     int i = 0;
 	while(1) {
-        if (i++ % 1000000 == 0)
-        printf("2\n");
+        //if (i++ % 1000000 == 0)
+        //printf("2\n");
         //usleep(10000);
 	}
 }
@@ -25,8 +26,8 @@ void* func3(int *input){
 	printf("in function\n");
     int i = 0;
 	while(1) {
-        if (i++ % 1000000 == 0)
-        printf("3\n");
+        //if (i++ % 1000000 == 0)
+        //printf("3\n");
         //usleep(10000);
 	}
 }

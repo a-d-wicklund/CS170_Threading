@@ -61,9 +61,11 @@ static int test1(void){
 
 //basic pthread self test
 //==============================================================================
-static pthread_t global_tid1 = (pthread_t) 1; 
+static pthread_t global_tid1 = (pthread_t) 35718547; 
 static void* _thread_self_test(void* arg){
+    printf("entered test: %d\n", pthread_self());
     global_tid1 = pthread_self();
+    printf("global: %d\n", global_tid1);
     pthread_exit(0);
 }
 
@@ -71,6 +73,7 @@ static int test2(void){
     pthread_t tid1 = 0;
     
     pthread_create(&tid1, NULL,  &_thread_self_test, NULL);
+    printf("created thread %d\n", tid1);
     
     while((global_tid1 != tid1)); //failure occurs on a timeout
     return PASS;
