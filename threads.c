@@ -57,7 +57,7 @@ static long int i64_ptr_mangle(long int p)
 }
 
 void schedule(){
-	//printf("Entered scheduler\n");
+	printf("Entered scheduler\n");
 	if(setjmp(head->block->jbuf) == 0){
 		
         if(head->next != NULL){//Put current head at the end, change head to next
