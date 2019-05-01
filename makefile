@@ -1,8 +1,8 @@
-output: basic_main.o threads.o
-	gcc -g basic_main.o threads.o -o application
+output: autograder2_main.o threads.o
+	gcc -g autograder2_main.o threads.o -o application
 
-basic_main.o: basic_main.c
-	gcc -c -g basic_main.c
+autograder2_main.o: autograder2_main.c
+	gcc -c -g autograder2_main.c
 
 threads.o: threads.c
 	gcc -c -g threads.c

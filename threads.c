@@ -66,10 +66,10 @@ void schedule(){
             tail = tail->next;
             tail->next = NULL;
 		}
-		printf("about to jump to thread with ID %d\n", head->block->tid); 
+		printf("about to jump to thread with ID %d and function at %p\n", head->block->tid, head->block->startFunc); 
 		//printf("data at PC for thread %d is %d\n",head->block->tid, head->block->jbuf[7]);
         longjmp(head->block->jbuf,1);
-        printf("shold be unreachable\n");
+        //printf("shold be unreachable\n");
     }
     else{
         return;
@@ -78,7 +78,7 @@ void schedule(){
 }
 
 void wrapper(){
-	printf("entered wrapper\n");
+	printf("entered wrapper for thread %d\n", head->block->tid);
     (*(head->block->startFunc))(head->block->arg);
     //printf("Returned from function\n");
     pthread_exit(0);
@@ -94,16 +94,7 @@ void pthread_init(){
 	head->block->tid = (pthread_t) 0;
 
 	tail = head;
-	
-    /*
-	if(setjmp(head->block->jbuf) == 0){
-			
-	}
-	else{
-        //return;
-		//printf("exiting process\n");
-		exit(0);
-	}*/
+    printf("Main's node's pointer is %p\n",head);
 	
 	struct sigaction sigact;
 	sigemptyset(&sigact.sa_mask);
@@ -158,11 +149,14 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     
 }
 void pthread_exit(void *retval){
+    printf("exiting thread %d\n", head->block->tid);
     free(head->block->sp);
     free(head->block);
     head = head->next;
-    if(head == NULL)
+    //printf("head should be null but is %p\n", head);
+    if(head == NULL){
         exit(0);
+    }
     else
         longjmp(head->block->jbuf, 1);
 
