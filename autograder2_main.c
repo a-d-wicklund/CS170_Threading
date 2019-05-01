@@ -218,8 +218,6 @@ static int test7(void){
 
 }
 
-
-
 //end of tests
 //==============================================================================
 
@@ -227,10 +225,12 @@ static int test7(void){
 
 
 //What does this test do?
-//Create thread. 
+//Create 50 threads(this happens more quickly than 50ms). Save the state of main. First thread starts. Increments and puts another thread on queue. the first 50
+//threads finish. The next 50 threads finish. 
 static int a8 = 0;
 static void* _more_stuff(void* arg){
-    a8++;
+    printf("inside more_stuff\n");
+	a8++;
 }
 
 
@@ -239,7 +239,7 @@ static void* _thread_inc8(void* arg){
     a8++;
 
     pthread_create(&tid1, NULL,  &_more_stuff, NULL);
-    printf("a8 is %d\n", a8);
+    //printf("a8 is %d\n", a8);
     pthread_exit(0);
 
 }
@@ -247,11 +247,13 @@ static void* _thread_inc8(void* arg){
 static int test8(void){
     pthread_t tid1;
     
-    for(int i = 0; i < 50; i++){
+    for(int i = 0; i < 51; i++){
         pthread_create(&tid1, NULL,  &_thread_inc8, NULL);
     // printf("created thread %i\n", i);
     }
-    while(a8 != 100); //just wait, failure occurs if there is a timeout
+    while(a8 != 102){ //just wait, failure occurs if there is a timeout
+	//	printf("a8 is %d\n", a8);
+	}
 
     for (int i = 0; i < 64; i++){
         pthread_create(&tid1, NULL,  &_thread_inc8, NULL);
