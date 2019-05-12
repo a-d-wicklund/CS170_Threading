@@ -50,7 +50,7 @@ int main(){
     //pthread_create(&thread3, NULL, &func3, &in2);
     //printf("Thread ID: %d\n", pthread_self());
     int i = 0;
-	for(i = 0; i < 20; i++){
+	for(i = 0; i < 5; i++){
 		pthread_create(&thread, NULL, &func, &in);
 	}
 	while(1) {

@@ -259,7 +259,7 @@ static int test8(void){
         pthread_create(&tid1, NULL,  &_thread_inc8, NULL);
     }
 
-    while(a8 != 228);
+    while(a8 != 230);
 
     return PASS;
 
@@ -440,8 +440,8 @@ int main(void){
 
         //child, launches the test
         if (pid == 0){
-            //dup2(devnull_fd, STDOUT_FILENO); //begone debug messages
-            //dup2(devnull_fd, STDERR_FILENO);
+            dup2(devnull_fd, STDOUT_FILENO); //begone debug messages
+            dup2(devnull_fd, STDERR_FILENO);
 
             score = test_arr[i]();
 

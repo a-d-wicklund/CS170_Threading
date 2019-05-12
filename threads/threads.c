@@ -60,18 +60,19 @@ void schedule(){
 	printf("Entered scheduler. Saving state of tid %d\n",head->block->tid);
 	if(setjmp(head->block->jbuf) == 0){
 		
-        if(head->next != NULL){//Put current head at the end, change head to next
-            tail->next = head;
-            head = head->next;
-            tail = tail->next;
-            tail->next = NULL;
-		}
-		printf("about to jump to thread with ID %d and function at %p\n", head->block->tid, head->block->startFunc); 
+        head = head->next;
+		tail = tail->next; 
+		//printf("about to jump to thread with ID %d and function at %p\n", head->block->tid, head->block->startFunc);
+		//printf("tail's next is %d\nhead is %d\n",tail->next->block->tid,head->block->tid);
+		//printf("5 steps ahead is thread %d\n",head->next->next->next->next->next->block->tid); 
 		//printf("data at PC for thread %d is %d\n",head->block->tid, head->block->jbuf[7]);
+		printf("Order of queue: %d %d %d %d %d %d %d\n",head->block->tid,head->next->block->tid,head->next->next->block->tid,head->next->next->next->block->tid,head->next->next->next->next->block->tid,head->next->next->next->next->next->block->tid,head->next->next->next->next->next->next->block->tid);
+
         longjmp(head->block->jbuf,1);
         //printf("shold be unreachable\n");
-    }
+            }
     else{
+		//only enters here if there is only one thread running
         return;
     }
 
@@ -95,6 +96,7 @@ void pthread_init(){
 	head->block->tid = (pthread_t) 0;
 
 	tail = head;
+	tail->next = head;
     printf("Main's node's pointer is %p\n",head);
 	
 	struct sigaction sigact;
@@ -120,14 +122,16 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
     //Set the new block to be the tail
  	tail->next = tmp;
 	tail = tail->next;
-	tail->next = NULL;
-   
-	tail->block = malloc(sizeof(struct ThreadControlBlock));			
+	tail->next = head;
+   	tail->block = malloc(sizeof(struct ThreadControlBlock));			
 
 	pthread_t nextID = createID();
     tail->block->tid = nextID;
     *thread = nextID;
 	printf("Creating thread with ID %d\n",nextID);
+	//printf("head is thread %d\n",head->block->tid);
+	//printf("tail's next is %d\n",tail->next->block->tid); 
+	printf("Order of queue: %d %d %d %d %d %d %d\n",head->block->tid,head->next->block->tid,head->next->next->block->tid,head->next->next->next->block->tid,head->next->next->next->next->block->tid,head->next->next->next->next->next->block->tid,head->next->next->next->next->next->next->block->tid);
 
     //printf("tmp points to address %p\nhead points to address %p\ntail points to address %p\n",tmp->block->tid, head->block->tid, tail->block->tid);
 
@@ -152,17 +156,24 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*start_
 }
 void pthread_exit(void *retval){
     printf("Exiting thread  %d. Next up, %d\n", head->block->tid, head->next->block->tid);
+	printf("tail is %d\n",tail->block->tid);
 	availID[head->block->tid] = 0;
-	//lq* tmp = head;
+	//lq* tmp = head;i
+	if(head->next == head)
+		exit(0);
+	printf("about to free stuff from thread %d\n",head->block->tid);
     free(head->block->sp);
     free(head->block);
     head = head->next;
+	tail->next = head;
+	printf("tail is %d\n",tail->block->tid);
 	//free(tmp);
     //printf("head should be null but is %p\n", head);
-    if(head == NULL){
+    /*if(head == NULL){
         exit(0);
     }
-    else
+	*/
+    //else
 		printf("jumping to %d\n",head->block->tid);
         longjmp(head->block->jbuf, 1);
 
